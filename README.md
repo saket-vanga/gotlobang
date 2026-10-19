@@ -1,6 +1,6 @@
-# SAKET
+# got lobang?
 
-Five stores. One list. Always the cheapest.
+The cheapest groceries in Singapore. One list, five shops.
 
 An iPhone web app that compares grocery prices across Sheng Siong, FairPrice, Waangoo, Selvi and KiasuMart.
 Open the site in Safari and add it to your Home Screen.

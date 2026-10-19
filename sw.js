@@ -1,7 +1,7 @@
-// Keeps the app shell on the phone so SAKET opens instantly and offline.
+// Keeps the app shell on the phone so got lobang? opens instantly and offline.
 // Network first, so a new version shows up the next time it's opened online.
-const CACHE = "saket-v1792394303";
-const SHELL = ["./", "index.html", "style.css", "app.js", "stores.js", "vendor/preact-htm.js",
+const CACHE = "lobang-v1792395641";
+const SHELL = ["./", "index.html", "style.css", "app.js", "stores.js", "vendor/preact-htm.js", "vendor/qrcode.js",
   "manifest.webmanifest", "icons/apple-touch-icon.png", "icons/icon-192.png"];
 
 self.addEventListener("install", e => {

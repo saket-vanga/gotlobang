@@ -181,7 +181,7 @@ export function singular(w) {
 /// Store searches find far more for "onion" than "onions".
 export const searchText = s => s.split(" ").map(singular).join(" ");
 
-const SIZE = /(?:(\d+)\s*[x×]\s*)?(\d+(?:\.\d+)?)\s*(kg|kgs|gm|gms|g|grams?|ltr|lt|l|litres?|liters?|ml|pcs|pc|pieces?|s|'s)(?![a-z])/;
+const SIZE = /(?:(\d+)\s*[x×]\s*)?(\d+(?:\.\d+)?)\s*(kg|kgs|gm|gms|g|grams?|ltr|lt|l|litres?|liters?|ml|pcs|pc|pieces?|s|'s)(?![a-z/])/;  // "304S/S" is steel, not 304 pieces
 
 /// Pack size from a title like "1.5kg", "946ml", "2 x 1L" or "10s".
 export function measure(o) {
@@ -213,7 +213,8 @@ const DERIVED = ["powder", "lotion", "cake", "crumb", "flour", "tart", "biscuit"
   "candy", "soap", "shampoo", "wash", "cream", "mix", "flavour", "flavor", "spread", "chips", "cracker", "snack",
   "sauce", "paste", "jam", "pudding", "ice", "yoghurt", "yogurt", "drink", "soy", "oat", "almond", "banana milk",
   "kheer", "rose", "lassi", "butter", "condensed", "evaporated", "coconut", "loaf", "walnut", "bandung", "tea",
-  "coffee", "masala", "ghee", "melon", "cultured", "strawberry", "smoothie", "protein", "pooja"];
+  "coffee", "masala", "ghee", "melon", "cultured", "strawberry", "smoothie", "protein", "pooja", "whisk", "beater",
+  "sponge", "slicer", "separator", "plant"];
 
 /// Results where every word of the item starts a word in the product name, among the site's top hits.
 export function matches(key, offers) {
@@ -222,7 +223,9 @@ export function matches(key, offers) {
     const text = `${o.name} ${o.size ?? ""}`.toLowerCase();
     const name = words(text);
     const squashed = text.replaceAll(" ", "");
-    const hit = query.every(q => name.some(w => w.startsWith(q)) || (/\d/.test(q) && squashed.includes(q)));
+    // Short words must match whole ("egg" isn't "eggplant", "milk" isn't "milky"); longer ones may start a word.
+    const fits = (w, q) => q.length <= 4 ? w === q || w === q + "s" || w === q + "es" : w.startsWith(q);
+    const hit = query.every(q => name.some(w => fits(w, q)) || (/\d/.test(q) && squashed.includes(q)));
     // "milk" shouldn't match body lotion or milk powder unless you asked for it.
     const derived = DERIVED.some(d => !query.some(q => q.startsWith(d)) &&
       (d.includes(" ") ? text.includes(d) : name.some(w => w.startsWith(d))));

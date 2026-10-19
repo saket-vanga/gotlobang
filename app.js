@@ -686,6 +686,10 @@ const ShareGlyph = () => html`<span class="glyph"><${Icon} name="share" size=${1
 const AddGlyph = () => html`<span class="glyph"><${Icon} name="addSquare" size=${17} stroke=${2.2} /></span>`;
 const MoreGlyph = () => html`<span class="glyph"><${Icon} name="more" size=${17} /></span>`;
 
+/// A little laptop, for the Mac app links.
+const MacGlyph = () => html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+  stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></svg>`;
+
 function InstallHero() {
   return html`<div class="install-hero">
     <img class="app-icon" src="icons/apple-touch-icon.png" alt="" />
@@ -701,11 +705,14 @@ function Install({ onSkip }) {
     return html`<div class="install">
       <${InstallHero} />
       <div class="install-card">
-        <h2>Made for iPhone</h2>
-        <p class="muted">Scan with your iPhone camera, then add it to your Home Screen.</p>
+        <h2>On a Mac? Get the app</h2>
+        <p class="muted">The full got lobang? experience on your desktop — free, for Apple Silicon and Intel Macs.</p>
+        <a class="btn primary wide mac-btn" href="mac/"><${MacGlyph} /> Get the Mac app</a>
+        <div class="or"><span>or on your iPhone</span></div>
+        <p class="muted center">Scan with your iPhone camera, then add it to your Home Screen.</p>
         <${QR} text=${url} />
         <div class="url">${url.replace(/^https?:\/\//, "")}</div>
-        <button class="btn wide" onClick=${onSkip}>Just use it here</button>
+        <button class="btn wide" onClick=${onSkip}>Just use it in this browser</button>
       </div></div>`;
   }
   let steps, arrow = null;
@@ -731,6 +738,7 @@ function Install({ onSkip }) {
       <h2>Put it on your Home Screen lah</h2>
       <p class="muted">Works like a real app — full screen, no App Store, free.</p>
       <ol class="steps">${steps.map(([t, d], i) => html`<li key=${i}><span class="num">${i + 1}</span><div><div class="step-t">${t}</div><div class="step-d">${d}</div></div></li>`)}</ol>
+      <a class="mac-link" href="mac/"><${MacGlyph} /> Got a Mac? Get the desktop app <${Icon} name="chevron" size=${15} stroke=${3} /></a>
       <button class="link-btn" onClick=${onSkip}>Nah, just use it in the browser</button>
     </div>
     ${arrow && html`<div class=${"pointer " + arrow}><span>${arrow === "top" ? "Share here" : "Share is down here"}</span>

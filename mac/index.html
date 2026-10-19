@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>got lobang? for Mac</title>
+  <meta name="description" content="The cheapest groceries in Singapore, on your Mac. One list, five shops — Sheng Siong, FairPrice, Waangoo, Selvi and KiasuMart. Free download." />
+  <meta name="theme-color" content="#ffcc29" />
+  <link rel="icon" type="image/png" href="../icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="mac.css" />
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./"><img src="../icons/icon-192.png" alt="" /><span class="wordmark">got lobang<i>?</i></span><span class="for-mac">for Mac</span></a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="../" class="hide-sm">iPhone app</a>
+      <a class="btn small primary" href="#download">Download</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero-text">
+      <span class="sticker red tilt-l">NEW · free</span>
+      <h1>Every lobang,<br />now on your <span class="hl">Mac</span>.</h1>
+      <p class="lead">Write your grocery list once. got lobang? kaypohs <b>Sheng Siong, FairPrice, Waangoo, Selvi and KiasuMart</b> at the same time, finds where each item is cheapest, and splits your cart by shop.</p>
+      <div class="cta">
+        <a class="btn primary big" href="https://github.com/saket-vanga/gotlobang/releases/latest/download/GotLobang.dmg" data-dl>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+          Download for Mac
+        </a>
+        <div class="cta-meta">Free · Apple Silicon &amp; Intel · macOS 14 or later</div>
+      </div>
+    </div>
+    <div class="hero-shot">
+      <div class="theme-switch" role="tablist" aria-label="Screenshot theme">
+        <button class="on" data-theme-shot="light">Light</button><button data-theme-shot="dark">Dark</button>
+      </div>
+      <img id="heroShot" src="img/main.png" width="1600" height="1047" alt="got lobang? on Mac: a grocery list with the cheapest price and shop for each item" />
+      <span class="sticker red float s1">save $11.29!</span>
+      <span class="sticker yellow float s2">5 shops checked</span>
+    </div>
+  </section>
+
+  <div class="shops">
+    <span style="--c:#e5484d">Sheng Siong</span><span style="--c:#3e63dd">FairPrice</span><span style="--c:#f76b15">Waangoo</span><span style="--c:#8e4ec6">Selvi</span><span style="--c:#12a594">KiasuMart</span>
+  </div>
+
+  <section id="how" class="how">
+    <h2 class="section-title"><span>How it works</span></h2>
+
+    <div class="step">
+      <div class="step-text">
+        <div class="num">1</div>
+        <h3>Make your list</h3>
+        <p>Type items like you'd text your mum — “2x eggs”, “basmati rice”, “nutella”. Paste a whole list from Notes and every line becomes an item. Tick what you already have and set quantities with − and +.</p>
+        <p>Prices start loading the moment you type, so each item shows its cheapest shop right away.</p>
+      </div>
+      <figure class="shot"><img src="img/main.png" width="1600" height="1047" loading="lazy" alt="The list screen with prices from each shop" /></figure>
+    </div>
+
+    <div class="step flip">
+      <div class="step-text">
+        <div class="num">2</div>
+        <h3>Pick your lobang</h3>
+        <p>Hit <b>Buy</b> and every product from every shop lines up as a card, best value first. The cheapest is already picked and marked <span class="sticker red inline">LOBANG!</span></p>
+        <p>Want the 2L instead of 1L, or a different flavour? Just click another card. Prices are compared per 100g, 100ml or piece, so the bigger pack wins only when it's really cheaper.</p>
+      </div>
+      <figure class="shot"><img src="img/pick.png" width="1600" height="1126" loading="lazy" alt="Choosing products for each item, with the cheapest marked" /></figure>
+    </div>
+
+    <div class="step">
+      <div class="step-text">
+        <div class="num">3</div>
+        <h3>One window per shop</h3>
+        <p>Your order splits into a window for each shop with just the items to buy there. Open each product in your browser, or add everything to the cart at once on Waangoo, Selvi and KiasuMart.</p>
+        <p>Then settle liao. 🎉</p>
+      </div>
+      <figure class="shot stack">
+        <img src="img/store-waangoo.png" width="1280" height="960" loading="lazy" alt="The Waangoo window with three items to buy" />
+        <img src="img/store-shengSiong.png" width="1280" height="960" loading="lazy" alt="The Sheng Siong window" />
+      </figure>
+    </div>
+  </section>
+
+  <section id="features" class="features">
+    <h2 class="section-title"><span>Why got lobang?</span></h2>
+    <div class="grid">
+      <div class="card"><div class="ic">💸</div><h3>Lobang meter</h3><p>See how much you save versus the usual price at the other shops — per item, per list, per trip.</p></div>
+      <div class="card"><div class="ic">🧻</div><h3>Chope your lists</h3><p>Weekly staples, monthly stock-up — chope them once and start a fresh shop from them in one click.</p></div>
+      <div class="card"><div class="ic">⚖️</div><h3>Fair comparisons</h3><p>Unit pricing per 100g / 100ml / piece, and smart matching so “milk” doesn't find milk powder or body lotion.</p></div>
+      <div class="card"><div class="ic">⚡</div><h3>Fast</h3><p>All five shops are searched in parallel while you type. Your last pick for each item is remembered.</p></div>
+      <div class="card"><div class="ic">🌗</div><h3>Light &amp; dark</h3><p>Looks right whichever way your Mac is set. Universal app — native on Apple Silicon and Intel.</p></div>
+      <div class="card"><div class="ic">🔒</div><h3>Your lists stay yours</h3><p>No account, no sign-up, no tracking. Lists live on your Mac; the app only talks to the shops' own websites.</p></div>
+    </div>
+  </section>
+
+  <section class="dark-band">
+    <div class="dark-text">
+      <h2>Late-night list making?</h2>
+      <p>Dark mode, same lobang.</p>
+    </div>
+    <figure class="shot"><img src="img/main-dark.png" width="1600" height="1047" loading="lazy" alt="got lobang? in dark mode" /></figure>
+  </section>
+
+  <section id="download" class="download">
+    <div class="dl-card">
+      <img class="dl-icon" src="../icons/icon-512.png" alt="" width="120" height="120" />
+      <h2>Get got lobang? for Mac</h2>
+      <p class="muted">Version 2.0 · Free · Universal (Apple Silicon &amp; Intel) · macOS 14 Sonoma or later</p>
+      <a class="btn primary big" href="https://github.com/saket-vanga/gotlobang/releases/latest/download/GotLobang.dmg" data-dl>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+        Download GotLobang.dmg
+      </a>
+      <ol class="install-steps">
+        <li><span class="n">1</span><div><b>Open the downloaded file</b> and drag Got Lobang onto Applications.</div></li>
+        <li><span class="n">2</span><div><b>Open it from Applications.</b> The first time, macOS says it can't check the app because it isn't from the App Store.</div></li>
+        <li><span class="n">3</span><div>Go to <b>System Settings › Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. You only do this once.</div></li>
+      </ol>
+      <p class="fine">On iPhone instead? <a href="../">Get the iPhone app</a> — it's free too, and lives on your Home Screen.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span class="wordmark small">got lobang<i>?</i></span>
+    <span>Made in Singapore for kiasu shoppers. Not affiliated with any of the shops.</span>
+    <a href="https://github.com/saket-vanga/gotlobang">Source on GitHub</a>
+  </footer>
+
+  <script>
+    // Light / dark screenshot switch in the hero.
+    const img = document.getElementById("heroShot");
+    document.querySelectorAll("[data-theme-shot]").forEach(b => b.addEventListener("click", () => {
+      document.querySelectorAll("[data-theme-shot]").forEach(x => x.classList.toggle("on", x === b));
+      img.src = b.dataset.themeShot === "dark" ? "img/main-dark.png" : "img/main.png";
+    }));
+    // Click a screenshot to see it full size.
+    document.querySelectorAll(".shot img, .hero-shot img").forEach(i => i.addEventListener("click", () => {
+      const o = document.createElement("div");
+      o.className = "zoom";
+      o.innerHTML = `<img src="${i.getAttribute("src")}" alt="">`;
+      o.addEventListener("click", () => o.remove());
+      document.body.append(o);
+    }));
+    // Thank-you nudge after the download starts.
+    document.querySelectorAll("[data-dl]").forEach(a => a.addEventListener("click", () => {
+      const t = document.createElement("div");
+      t.className = "toast";
+      t.textContent = "Downloading… open it and drag to Applications 🎉";
+      document.body.append(t);
+      setTimeout(() => t.remove(), 4000);
+    }));
+  </script>
+</body>
+</html>

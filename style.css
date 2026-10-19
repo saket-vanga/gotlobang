@@ -397,3 +397,14 @@ b { font-weight: 700; }
 .qr svg { width: 100%; height: 100%; display: block; }
 .url { text-align: center; font-size: 14px; color: #5c5247; word-break: break-all; margin-bottom: 14px; font-family: var(--mono); }
 .install-card .btn { background: #fff; color: #17130e; border-color: #17130e; box-shadow: 4px 4px 0 #17130e; }
+.mac-btn { height: 56px; margin: 4px 0 2px; }
+.or { display: flex; align-items: center; gap: 10px; margin: 22px 0 12px; color: #8a7d6b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.or::before, .or::after { content: ""; flex: 1; border-top: 2px dashed #d8ccb4; }
+.center { text-align: center; }
+.mac-link {
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin: 16px 0 0; padding: 12px; border-radius: 14px;
+  border: 2px dashed #17130e; font-family: var(--round); font-weight: 800; font-size: 15px; color: #17130e;
+}
+.mac-link:active { background: #fff5dc; }
+.install-card .btn.primary { background: var(--yellow); }
+.install-hero .app-icon { display: block; margin-left: auto; margin-right: auto; }

@@ -157,13 +157,18 @@ footer .wordmark.small { font-size: 20px; color: var(--ink); }
 @keyframes fade { from { opacity: 0; } }
 .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 60; background: #17130e; color: var(--yellow); border: 2.5px solid var(--yellow); padding: 12px 20px; border-radius: 14px; font: 800 16px var(--round); animation: fade .3s ease; white-space: nowrap; }
 
+.tour { max-width: 1060px; margin: 30px auto 0; padding: 0 24px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 56px; align-items: center; }
+.tour .shot img { box-shadow: 8px 8px 0 #17130e; border-color: #17130e; }
+.tour h2 { font-family: var(--round); font-weight: 900; font-size: clamp(28px, 3.6vw, 40px); letter-spacing: -.03em; line-height: 1.05; margin: 14px 0 10px; }
+.tour p { color: var(--ink-2); margin: 0; }
+
 /* ---------- small screens ---------- */
 @media (max-width: 860px) {
-  .hero, .step, .step.flip, .dark-band { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+  .hero, .step, .step.flip, .dark-band, .tour { grid-template-columns: minmax(0, 1fr); gap: 30px; }
   .step.flip .step-text { order: 0; }
   .hero { padding-top: 40px; }
   .grid { grid-template-columns: minmax(0, 1fr); }
-  .hide-sm, nav a[href="#how"], nav a[href="#features"] { display: none; }
+  .hide-sm, .for-mac, nav a[href="#how"], nav a[href="#features"] { display: none; }
   .s1 { left: 6px; }
   .step { margin-bottom: 60px; }
   .dl-card { padding: 30px 18px 22px; }

@@ -11,6 +11,7 @@ const LS = {
   },
   set(k, v) { try { localStorage.setItem("lobang." + k, JSON.stringify(v)); } catch {} },
 };
+const keyOf = name => name.trim().toLowerCase();
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const entry = (name, quantity = 1) => ({ id: uid(), name, quantity, done: false });
 const RESULT_TTL = 6 * 3600e3;
@@ -31,8 +32,12 @@ const S = {
   buy: null,      // { listId, qty: {key: n}, skip: {key: bool}, pick: {key: "site|id"} }
   orders: null,   // { listId, bySite: {site: [{item, quantity, offer}]}, opened: {} }
   sheet: null,    // modal sheet: { kind, ... }
-  toast: null,
+  toast: null,    // { msg, action?: { label, run } }
+  tutorial: !LS.get("onboarded", false),
 };
+// How often each item was added, for quick-add suggestions. Seeded from the lists you already have.
+S.history = LS.get("history", null) ?? Object.fromEntries(
+  [...new Set(S.lists.flatMap(l => l.items.map(i => keyOf(i.name))).filter(Boolean))].map(k => [k, 1]));
 
 const listeners = new Set();
 let queued = false;
@@ -44,6 +49,7 @@ function emit() {
 function update(fn) {
   fn?.(S);
   LS.set("lists", S.lists); LS.set("choices", S.choices); LS.set("enabled", S.enabled); LS.set("byUnit", S.byUnit);
+  LS.set("history", S.history);
   emit();
 }
 let saveResultsTimer;
@@ -61,15 +67,14 @@ const go = route => update(s => { s.stack.push(route); s.sheet = null; });
 const back = () => update(s => { if (s.stack.length > 1) s.stack.pop(); s.sheet = null; });
 const home = () => update(s => { s.stack = [{ screen: "home" }]; s.sheet = null; });
 let toastTimer;
-function toast(msg) {
-  update(s => { s.toast = msg; });
+function toast(msg, action) {
+  update(s => { s.toast = { msg, action }; });
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => update(s => { s.toast = null; }), 2200);
+  toastTimer = setTimeout(() => update(s => { s.toast = null; }), action ? 4500 : 2200);
 }
 
 // ---------------------------------------------------------------- lists
 
-const keyOf = name => name.trim().toLowerCase();
 const listById = id => S.lists.find(l => l.id === id);
 
 /// What still needs buying, merged by name.
@@ -264,22 +269,25 @@ function listStats(list) {
 // ---------------------------------------------------------------- home
 
 function Home() {
-  const lists = S.lists.filter(l => !l.saved), choped = S.lists.filter(l => l.saved);
+  const choped = S.lists.filter(l => l.saved), lists = S.lists.filter(l => !l.saved);
   useEffect(() => { check(S.lists.flatMap(toBuy)); }, []);
   const stats = Object.fromEntries(S.lists.map(l => [l.id, listStats(l)]));
-  const found = lists.reduce((t, l) => t + stats[l.id].saved, 0);
+  const found = S.lists.reduce((t, l) => t + stats[l.id].saved, 0);
 
   const card = (l, i) => {
     const st = stats[l.id];
+    const total = l.items.filter(e => e.name.trim()).length, got = l.items.filter(e => e.done && e.name.trim()).length;
+    const allGot = total > 0 && got === total;
     return html`<button class="list-card" key=${l.id} onClick=${() => go({ screen: "list", id: l.id })}>
-      <div class=${"list-icon" + (l.saved ? " choped" : "")}>${l.saved ? "🧻" : html`<${Icon} name="cart" size=${22} />`}</div>
+      <div class=${"list-icon" + (l.saved ? " choped" : "")}>${allGot ? "🎉" : l.saved ? "🧻" : html`<${Icon} name="cart" size=${22} />`}</div>
       <div class="list-text">
         <div class="list-name">${l.name || "Untitled list"}</div>
-        <div class="list-sub">${st.items.length ? `${st.items.length} item${st.items.length === 1 ? "" : "s"}` : "Empty"}
-          ${st.items.length > 0 && (st.loading && !st.total ? html` · <span class="shimmer">checking</span>` : st.total > 0 && html` · <b>${money(st.total)}</b>`)}</div>
-        ${st.items.length > 0 && html`<div class="list-peek">${st.items.slice(0, 4).map(i => i.query).join(" · ")}${st.items.length > 4 ? " …" : ""}</div>`}
+        <div class="list-sub">${!total ? "Empty — tap to add items"
+          : allGot ? "All got liao — tap to shop again"
+          : html`${st.items.length} to buy${st.loading && !st.total ? html` · <span class="shimmer">checking</span>` : st.total > 0 ? html` · <b>${money(st.total)}</b>` : ""}`}</div>
+        ${got > 0 && html`<div class="progress-mini"><i style=${{ width: `${(got / total) * 100}%` }}></i></div>`}
       </div>
-      ${st.saved >= 0.5 && html`<${Sticker} tone="red" tilt=${i % 2 ? 5 : -5}>save ${money(st.saved)}<//>`}
+      ${st.saved >= 0.5 && !allGot && html`<${Sticker} tone="red" tilt=${i % 2 ? 5 : -5}>save ${money(st.saved)}<//>`}
     </button>`;
   };
 
@@ -289,7 +297,7 @@ function Home() {
         <${Wordmark} size="lg" />
         <div class="greet">${greeting()}</div>
       </div>
-      <button class="round-btn" aria-label="Shops" onClick=${() => update(s => { s.sheet = { kind: "settings" }; })}><${Icon} name="sliders" /></button>
+      <button class="round-btn" aria-label="Settings" onClick=${() => update(s => { s.sheet = { kind: "settings" }; })}><${Icon} name="sliders" /></button>
     </header>
     <main class="scroll pad-bottom">
       ${found >= 0.5 && html`<div class="meter">
@@ -298,11 +306,12 @@ function Home() {
         <div class="meter-sub">cheaper than the usual price at the other shops</div>
         <span class="meter-stamp">SHIOK!</span>
       </div>`}
-      <h2 class="section"><span>Your lists</span></h2>
-      ${lists.length ? html`<div class="cards">${lists.map(card)}</div>` : html`<div class="empty-mini">No list yet. Tap <b>New list</b> lah.</div>`}
-      <h2 class="section"><span>Choped lists</span> <em>🧻</em></h2>
-      ${choped.length ? html`<div class="cards">${choped.map(card)}</div>`
-        : html`<div class="empty-mini">Lists you buy every week? <b>Chope</b> them — they'll wait here for you.</div>`}
+      ${choped.length > 0 && html`<h2 class="section"><span>Choped</span> <em>🧻</em></h2>
+        <div class="cards">${choped.map(card)}</div>`}
+      <h2 class="section"><span>${choped.length ? "Other lists" : "Your lists"}</span></h2>
+      ${lists.length ? html`<div class="cards">${lists.map(card)}</div>`
+        : html`<div class="empty-mini">${choped.length ? "Nothing else here." : html`No list yet. Tap <b>New list</b> lah.`}</div>`}
+      ${S.lists.length > 0 && !choped.length && html`<p class="hint-foot">Tip: open a list and tap <b>🧻 Chope</b> to pin it up here.</p>`}
     </main>
     <div class="bottom-bar">
       <button class="btn primary wide" onClick=${() => { const l = newList(false); go({ screen: "list", id: l.id, focus: true }); }}>
@@ -313,15 +322,43 @@ function Home() {
 
 // ---------------------------------------------------------------- list
 
-function ItemRow({ list, item }) {
+/// Every shop's best match for one item, cheapest first — shown when you tap an item.
+function Compare({ item }) {
+  const key = keyOf(item.name);
+  const best = cheapest(key);
+  const rows = sites().map(site => {
+    const r = result(key, site);
+    const o = rank(matches(key, offersAt(key, site)), S.byUnit)[0];
+    return { site, o, status: r?.status };
+  });
+  // Same order the winner is picked in (unit price when sizes compare), shops without a match last.
+  const order = rank(rows.filter(r => r.o).map(r => r.o), S.byUnit).map(ref);
+  rows.sort((a, b) => (a.o ? order.indexOf(ref(a.o)) : 99) - (b.o ? order.indexOf(ref(b.o)) : 99));
+  return html`<div class="compare">
+    ${rows.map(({ site, o, status }) => html`<div class=${"cmp-row" + (best && o && ref(o) === ref(best) ? " best" : "")} key=${site}>
+      <${Dot} site=${site} />
+      <div class="cmp-text">
+        <div class="cmp-shop">${SITES[site].name}${best && o && ref(o) === ref(best) ? html` <span class="mini-tag">LOBANG!</span>` : ""}</div>
+        <div class="cmp-prod">${o ? title(o) : status === "loading" || !status ? "checking…" : status === "failed" ? "shop didn't answer" : "no match"}</div>
+      </div>
+      <div class="cmp-price">${o ? money(o.price) : "—"}${o && unitPrice(o) ? html`<small>${money(unitPrice(o).value)}/${unitPrice(o).label}</small>` : ""}</div>
+    </div>`)}
+  </div>`;
+}
+
+function ItemRow({ list, item, open, onOpen }) {
   const [dx, setDx] = useState(0);
   const touch = useRef(null);
   const set = patch => update(() => Object.assign(item, patch));
   const key = keyOf(item.name);
   const best = item.done || !key ? null : cheapest(key);
   const loading = !item.done && key && isLoading(key);
-  const remove = () => update(() => { list.items = list.items.filter(i => i !== item); });
   const settled = key && sites().every(s => result(key, s)?.status && result(key, s).status !== "loading");
+  const remove = () => {
+    const at = list.items.indexOf(item);
+    update(() => { list.items = list.items.filter(i => i !== item); });
+    toast(`Removed ${item.name || "item"}`, { label: "Undo", run: () => update(() => { list.items.splice(Math.min(at, list.items.length), 0, item); }) });
+  };
 
   const onStart = e => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, base: dx, dir: null }; };
   const onMove = e => {
@@ -330,54 +367,91 @@ function ItemRow({ list, item }) {
     if (!t.dir) t.dir = Math.abs(mx) > Math.abs(my) + 4 ? "x" : Math.abs(my) > 6 ? "y" : null;
     if (t.dir === "x") setDx(Math.max(-96, Math.min(0, t.base + mx)));
   };
-  const onEnd = () => { if (touch.current?.dir === "x") setDx(dx < -48 ? -88 : 0); touch.current = null; };
+  const onEnd = () => { if (touch.current?.dir === "x") { setDx(dx < -48 ? -88 : 0); touch.current.swiped = true; } };
+  const onTap = () => {
+    if (touch.current?.swiped) { touch.current = null; return; }
+    touch.current = null;
+    if (dx) { setDx(0); return; }
+    onOpen();
+  };
 
-  return html`<div class="row-wrap">
+  return html`<div class=${"row-wrap" + (open ? " open" : "")}><div class="swipe">
     <button class="row-delete" onClick=${remove} aria-label="Delete"><${Icon} name="trash" size=${20} /></button>
     <div class=${"item" + (item.done ? " done" : "")} style=${{ transform: `translateX(${dx}px)` }}
-      onTouchStart=${onStart} onTouchMove=${onMove} onTouchEnd=${onEnd}>
-      <button class="tick" aria-label=${item.done ? "Untick" : "Got already"} onClick=${() => set({ done: !item.done })}>
+      onTouchStart=${onStart} onTouchMove=${onMove} onTouchEnd=${onEnd} onClick=${onTap}>
+      <button class="tick" aria-label=${item.done ? "Untick" : "Got it"} onClick=${e => { e.stopPropagation(); set({ done: !item.done }); }}>
         ${item.done && html`<${Icon} name="check" size=${15} stroke=${3.6} />`}</button>
       <div class="item-main">
-        <input class="item-name" value=${item.name} enterkeyhint="done" autocomplete="off" autocorrect="off"
-          onInput=${e => set({ name: e.target.value })}
-          onBlur=${e => { if (!e.target.value.trim()) remove(); else check(toBuy(list)); }}
-          onKeyDown=${e => e.key === "Enter" && e.target.blur()} />
+        <div class="item-name">${item.quantity > 1 && !item.done ? html`<span class="qty-badge">${item.quantity}×</span>` : ""}${item.name}</div>
         <div class="item-hint">
-          ${item.done ? "Got already — not buying"
+          ${item.done ? "Got it"
             : loading && !best ? html`<${Kaypoh} />`
             : best ? html`<${Dot} site=${best.site} /><b>${money(best.price)}</b> at ${SITES[best.site].name}`
-            : settled ? html`<span class="warn">No lobang leh — pick one when buying</span>` : ""}
+            : settled ? html`<span class="warn">No lobang leh — tap to see</span>` : ""}
         </div>
       </div>
       ${!item.done && html`<${Stepper} value=${item.quantity} onChange=${q => set({ quantity: q })} />`}
-    </div>
+      <span class=${"chev-open" + (open ? " on" : "")}><${Icon} name="chevron" size=${16} stroke=${3} /></span>
+    </div></div>
+    ${open && html`<div class="item-detail">
+      ${!item.done && html`<${Compare} item=${item} />`}
+      <div class="detail-actions">
+        <input class="rename" value=${item.name} aria-label="Item name" enterkeyhint="done" autocomplete="off"
+          onInput=${e => set({ name: e.target.value })}
+          onBlur=${e => { if (!e.target.value.trim()) set({ name: "item" }); check(toBuy(list)); }}
+          onKeyDown=${e => e.key === "Enter" && e.target.blur()} />
+        <button class="btn small danger-outline" onClick=${remove}><${Icon} name="trash" size=${16} /> Delete</button>
+      </div>
+    </div>`}
   </div>`;
+}
+
+const STAPLES = ["milk", "eggs", "bread", "rice", "onions", "tomatoes", "potatoes", "bananas", "chicken", "yogurt",
+  "cooking oil", "sugar", "apples", "garlic", "butter", "cheese", "instant noodles", "coffee", "tea", "toilet paper"];
+
+/// Quick-add chips: things you've added before (most often first), then common staples — minus what's
+/// already on this list. While typing they narrow to matches.
+function suggestions(list, draft) {
+  const have = new Set(list.items.filter(i => !i.done).map(i => keyOf(i.name)));
+  const past = Object.entries(S.history).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+  const q = keyOf(draft);
+  const pool = [...new Set([...past, ...STAPLES])].filter(k => !have.has(k));
+  return (q ? pool.filter(k => k.startsWith(q) || k.includes(" " + q) || (q.length > 2 && k.includes(q))) : pool).slice(0, 10);
 }
 
 function ListScreen({ id, focus }) {
   const list = listById(id);
   const [draft, setDraft] = useState("");
+  const [openId, setOpenId] = useState(null);
+  const [showGot, setShowGot] = useState(false);
   const titleRef = useRef(), addRef = useRef();
   useEffect(() => { if (list) check(toBuy(list)); }, [id]);
   useEffect(() => { if (focus) setTimeout(() => titleRef.current?.focus(), 350); }, []);
   if (!list) return html`<div class="screen"><${NavBar} backLabel="Lists" onBack=${back} /></div>`;
 
   const st = listStats(list);
-  const open = list.items.filter(i => !i.done), done = list.items.filter(i => i.done);
+  const open = list.items.filter(i => !i.done), got = list.items.filter(i => i.done);
+  const allGot = list.items.length > 0 && !open.length;
+  const sugg = suggestions(list, draft);
 
   const add = text => {
     const parsed = parseItems(text);
     if (!parsed.length) return;
-    update(() => {
+    update(s => {
       for (const p of parsed) {
-        const have = list.items.find(i => !i.done && keyOf(i.name) === keyOf(p.name));
-        if (have) have.quantity = Math.min(99, have.quantity + p.quantity); else list.items.push(entry(p.name, p.quantity));
+        // Re-adding something you already ticked brings it back instead of making a duplicate.
+        const have = list.items.find(i => keyOf(i.name) === keyOf(p.name));
+        if (have && have.done) { have.done = false; have.quantity = p.quantity; }
+        else if (have) have.quantity = Math.min(99, have.quantity + p.quantity);
+        else list.items.push(entry(p.name, p.quantity));
+        s.history[keyOf(p.name)] = (s.history[keyOf(p.name)] ?? 0) + 1;
       }
     });
     setDraft("");
     check(toBuy(list));
   };
+  const shopAgain = () => { update(() => { for (const i of list.items) i.done = false; }); check(toBuy(list)); toast("Unticked everything — shop again!"); };
+  const row = i => html`<${ItemRow} key=${i.id} list=${list} item=${i} open=${openId === i.id} onOpen=${() => setOpenId(openId === i.id ? null : i.id)} />`;
 
   return html`<div class="screen">
     <${NavBar} backLabel="Lists" onBack=${back} right=${html`
@@ -387,13 +461,12 @@ function ListScreen({ id, focus }) {
         onInput=${e => update(() => { list.name = e.target.value; })} onKeyDown=${e => e.key === "Enter" && addRef.current?.focus()} />
       <div class="chips">
         <button class=${"chope" + (list.saved ? " on" : "")} onClick=${() => {
-          update(() => { list.saved = !list.saved; }); toast(list.saved ? "🧻 Choped! It's under Choped lists" : "Unchoped liao"); }}>
-          <span class="tissue">🧻</span>${list.saved ? "Choped!" : "Chope this list"}
+          update(() => { list.saved = !list.saved; }); toast(list.saved ? "🧻 Choped! Pinned to the top" : "Unchoped liao"); }}>
+          <span class="tissue">🧻</span>${list.saved ? "Choped!" : "Chope"}
         </button>
         <span class="chip">${st.items.length} to buy</span>
-        ${done.length > 0 && html`<span class="chip">${done.length} got already</span>`}
-        ${st.items.length > 0 && (st.loading ? html`<span class="chip"><i class="spin"></i>checking</span>`
-          : html`<span class="chip good"><${Icon} name="check" size=${12} stroke=${3.6} /> prices in</span>`)}
+        ${got.length > 0 && html`<span class="chip good"><${Icon} name="check" size=${12} stroke=${3.6} /> ${got.length} got</span>`}
+        ${st.items.length > 0 && st.loading && html`<span class="chip"><i class="spin"></i>checking</span>`}
       </div>
       <div class="add-bar">
         <input ref=${addRef} placeholder="Add something — try “2x eggs”" value=${draft} enterkeyhint="done" autocomplete="off"
@@ -402,14 +475,23 @@ function ListScreen({ id, focus }) {
           onPaste=${e => { const t = e.clipboardData?.getData("text") ?? ""; if (t.includes("\n")) { e.preventDefault(); add(t); } }} />
         <button class="add-go" aria-label="Add" disabled=${!draft.trim()} onClick=${() => add(draft)}><${Icon} name="plus" size=${22} stroke=${3.4} /></button>
       </div>
+      ${sugg.length > 0 && html`<div class="suggest">
+        ${sugg.map(k => html`<button key=${k} class="sugg" onClick=${() => { add(k); addRef.current?.focus(); }}><${Icon} name="plus" size=${13} stroke=${3.4} />${k}</button>`)}
+      </div>`}
+      ${allGot && html`<div class="all-got">
+        <div class="all-got-emoji">🎉</div>
+        <div><b>All got liao!</b><div class="muted">Need the same things again next time?</div></div>
+        <button class="btn small primary" onClick=${shopAgain}>Shop again</button>
+      </div>`}
       ${list.items.length === 0 ? html`<div class="empty">
           <div class="empty-bubble">Eh, list empty leh.<br />Need what?</div>
-          <p>Add items above. We kaypoh Sheng Siong, FairPrice, Waangoo, Selvi and KiasuMart, then tell you where got cheaper.</p>
+          <p>Type above or tap a suggestion. We kaypoh 5 shops and tell you where got cheaper.</p>
           <p class="muted">Tip: paste a whole list — one item per line.</p></div>`
-        : html`<div class="items">${open.map(i => html`<${ItemRow} key=${i.id} list=${list} item=${i} />`)}</div>
-          ${done.length > 0 && html`<h2 class="section small"><span>Got already</span></h2>
-            <div class="items">${done.map(i => html`<${ItemRow} key=${i.id} list=${list} item=${i} />`)}</div>`}
-          <p class="hint-foot">Tick what you already have · swipe left to delete</p>`}
+        : html`${open.length > 0 && html`<div class="items">${open.map(row)}</div>`}
+          ${got.length > 0 && html`<button class="section small got-toggle" onClick=${() => setShowGot(!showGot)}>
+              <span>Got it · ${got.length}</span><em class=${showGot ? "rot" : ""}><${Icon} name="chevron" size=${16} stroke=${3} /></em></button>
+            ${(showGot || allGot) && html`<div class="items">${got.map(row)}</div>`}`}
+          <p class="hint-foot">Tick ☑ when you've got it · tap an item to compare shops</p>`}
     </main>
     <div class="bottom-bar summary">
       <div class="est">
@@ -418,8 +500,9 @@ function ListScreen({ id, focus }) {
         <div class="est-value">${st.total > 0 ? money(st.total) : "—"}</div>
         <div class="est-sub">${st.shops ? `across ${st.shops} shop${st.shops === 1 ? "" : "s"}` : st.loading ? "checking…" : ""}</div>
       </div>
-      <button class="btn primary" disabled=${!st.items.length} onClick=${() => startBuy(list)}>
-        Buy ${st.items.length || ""} <${Icon} name="chevron" size=${18} stroke=${3.2} /></button>
+      ${allGot ? html`<button class="btn primary" onClick=${shopAgain}><${Icon} name="refresh" size=${18} stroke=${3} /> Shop again</button>`
+        : html`<button class="btn primary" disabled=${!st.items.length} onClick=${() => startBuy(list)}>
+          Buy ${st.items.length || ""} <${Icon} name="chevron" size=${18} stroke=${3.2} /></button>`}
     </div>
   </div>`;
 }
@@ -545,9 +628,9 @@ function StoresScreen() {
   const mark = id => update(s => { s.orders.opened[id] = true; });
   const finish = () => {
     const list = listById(o.listId);
-    update(() => { if (list && !list.saved) for (const it of list.items) if (o.opened[keyOf(it.name)]) it.done = true; });
+    update(() => { if (list) for (const it of list.items) if (o.opened[keyOf(it.name)]) it.done = true; });
     home();
-    toast("Shiok! Bought items ticked off.");
+    toast("Shiok! Bought items ticked as got.");
   };
 
   return html`<div class="screen">
@@ -609,7 +692,8 @@ function Sheet({ children, onClose }) {
 function SettingsSheet() {
   const close = () => update(s => { s.sheet = null; });
   return html`<${Sheet} onClose=${close}>
-    <h3 class="sheet-title">Which shops to kaypoh?</h3>
+    <h3 class="sheet-title">Settings</h3>
+    <div class="sheet-sub">Which shops to kaypoh?</div>
     <div class="group">
       ${SITE_IDS.map(id => html`<div class="group-row" key=${id}><${Dot} site=${id} /><span class="grow">${SITES[id].name}</span>
         <${Toggle} on=${S.enabled.includes(id)} onChange=${on => {
@@ -623,6 +707,10 @@ function SettingsSheet() {
       <button class="group-row link" onClick=${() => { update(s => { s.results = {}; }); LS.set("results", {}); check(S.lists.flatMap(toBuy)); close(); toast("Checking all prices again"); }}>
         <${Icon} name="refresh" size=${18} /><span class="grow">Check all prices again</span></button>
     </div>
+    <div class="group">
+      <button class="group-row link" onClick=${() => update(s => { s.sheet = null; s.tutorial = true; })}>
+        <span class="menu-emoji">👋</span><span class="grow">How it works (tutorial)</span></button>
+    </div>
     <button class="btn primary wide" onClick=${close}>Can</button>
   <//>`;
 }
@@ -633,15 +721,13 @@ function ListMenu({ id }) {
   if (!list) return null;
   const act = (label, icon, fn, danger) => html`<button class=${"menu-row" + (danger ? " danger" : "")} onClick=${fn}>
     ${icon.length <= 2 ? html`<span class="menu-emoji">${icon}</span>` : html`<${Icon} name=${icon} size=${19} />`}<span>${label}</span></button>`;
+  const anyGot = list.items.some(i => i.done);
   return html`<${Sheet} onClose=${close}>
     <h3 class="sheet-title">${list.name || "Untitled list"}</h3>
     <div class="group">
-      ${list.saved && act("Start shopping from this", "cart", () => {
-        const l = newList(false, list.name, list.items);
-        update(s => { s.stack = [{ screen: "home" }, { screen: "list", id: l.id }]; s.sheet = null; });
-      })}
-      ${act(list.saved ? "Unchope" : "Chope this list", "🧻", () => { update(() => { list.saved = !list.saved; }); close(); })}
-      ${act("Duplicate", "copy", () => { const l = newList(list.saved, `${list.name || "List"} copy`, list.items); update(s => { s.stack.pop(); s.stack.push({ screen: "list", id: l.id }); s.sheet = null; }); })}
+      ${act(list.saved ? "Unchope (unpin)" : "Chope (pin to top)", "🧻", () => { update(() => { list.saved = !list.saved; }); close(); })}
+      ${anyGot && act("Untick all — shop again", "refresh", () => { update(() => { for (const i of list.items) i.done = false; }); check(toBuy(list)); close(); })}
+      ${act("Duplicate", "copy", () => { const l = newList(false, `${list.name || "List"} copy`, list.items); update(s => { s.stack.pop(); s.stack.push({ screen: "list", id: l.id }); s.sheet = null; }); })}
       ${act("Check prices again", "refresh", () => { check(toBuy(list), true); close(); })}
       ${act("Shops…", "sliders", () => update(s => { s.sheet = { kind: "settings" }; }))}
     </div>
@@ -746,6 +832,98 @@ function Install({ onSkip }) {
   </div>`;
 }
 
+// ---------------------------------------------------------------- first-time tutorial
+
+/// Little animated mock-ups of the real screens, one per tutorial card.
+const DEMO_ROWS = [["milk", "waangoo", "3.15"], ["eggs", "shengSiong", "2.70"], ["basmati rice", "selvi", "9.90"]];
+
+function TutWelcome() {
+  return html`<div class="tut-art welcome">
+    <img class="tut-icon" src="icons/apple-touch-icon.png" alt="" />
+    ${SITE_IDS.map((id, i) => html`<span key=${id} class="tut-shop" style=${{ "--c": SITES[id].color, "--i": i }}>${SITES[id].name}</span>`)}
+  </div>`;
+}
+
+function TutAdd() {
+  return html`<div class="tut-art">
+    <div class="add-bar tut-add"><span class="type-wrap"><span class="typing">2x eggs</span></span><span class="add-go"><${Icon} name="plus" size=${20} stroke=${3.4} /></span></div>
+    <div class="suggest tut-sugg">${["milk", "bread", "onions", "bananas"].map(k => html`<span key=${k} class="sugg"><${Icon} name="plus" size=${12} stroke=${3.4} />${k}</span>`)}</div>
+    <div class="item tut-pop"><span class="tick"></span><div class="item-main"><div class="item-name"><span class="qty-badge">2×</span>eggs</div>
+      <div class="item-hint"><${Dot} site="shengSiong" /><b>$2.70</b> at Sheng Siong</div></div></div>
+  </div>`;
+}
+
+function TutPrices() {
+  return html`<div class="tut-art">
+    ${DEMO_ROWS.map(([n, s, p], i) => html`<div class="item tut-row" key=${n} style=${{ "--i": i }}>
+      <span class="tick"></span>
+      <div class="item-main"><div class="item-name">${n}</div>
+        <div class="item-hint"><${Dot} site=${s} /><b>$${p}</b> at ${SITES[s].name}</div></div>
+    </div>`)}
+    <span class="tut-sticker"><${Sticker} tone="red" tilt=${-6}>lobang: save $4.20<//></span>
+  </div>`;
+}
+
+function TutTick() {
+  return html`<div class="tut-art">
+    <div class="item tut-tick"><span class="tick"><${Icon} name="check" size=${15} stroke=${3.6} /></span>
+      <div class="item-main"><div class="item-name">milk</div><div class="item-hint">Got it</div></div></div>
+    <div class="item"><span class="tick"></span><div class="item-main"><div class="item-name">eggs</div>
+      <div class="item-hint"><${Dot} site="shengSiong" /><b>$2.70</b> at Sheng Siong</div></div></div>
+    <div class="tut-chope"><span class="chope on"><span class="tissue">🧻</span>Choped!</span></div>
+  </div>`;
+}
+
+function TutBuy() {
+  return html`<div class="tut-art">
+    <div class="tut-receipt receipt" style=${{ "--c": SITES.waangoo.color }}>
+      <div class="r-store">Waangoo</div>
+      <div class="r-rule"></div>
+      <div class="r-line"><div class="r-text"><div class="r-name">F&N Magnolia milk 1L</div><div class="r-sub">2 × $3.15</div></div><span class="r-btn did"><${Icon} name="check" size=${14} stroke=${3.6} /></span></div>
+      <div class="r-line"><div class="r-text"><div class="r-name">Cavendish bananas 1kg</div><div class="r-sub">1 × $3.48</div></div><span class="r-btn">Add</span></div>
+      <div class="r-rule"></div>
+      <div class="r-total"><span>TOTAL</span><span>$9.78</span></div>
+    </div>
+    <span class="stamp tut-stamp">SETTLED</span>
+  </div>`;
+}
+
+const TUTORIAL = [
+  [TutWelcome, "Welcome lah!", html`got lobang? checks <b>5 Singapore shops</b> at once and tells you where each grocery item is cheapest.`],
+  [TutAdd, "Make your list", html`Type anything — “2x eggs”, “basmati rice” — or tap a suggestion. Pasting a whole list from Notes also can.`],
+  [TutPrices, "We kaypoh, you save", html`Every item shows its cheapest shop. <b>Tap an item</b> to compare all five shops side by side.`],
+  [TutTick, "Tick = got it", html`Tick what you already have or just bought. All ticked? <b>Shop again</b> resets the list. <b>Chope 🧻</b> the lists you use every week to pin them on top.`],
+  [TutBuy, "Buy, then settle liao", html`Hit <b>Buy</b>, pick sizes or flavours, and we split everything into a receipt per shop. Tap <b>Add</b> on each and you're done.`],
+];
+
+function Tutorial() {
+  const [i, setI] = useState(0);
+  const touch = useRef(null);
+  const last = i === TUTORIAL.length - 1;
+  const done = () => { LS.set("onboarded", true); update(s => { s.tutorial = false; }); };
+  const goTo = n => setI(Math.max(0, Math.min(TUTORIAL.length - 1, n)));
+  return html`<div class="tutorial"
+      onTouchStart=${e => { touch.current = e.touches[0].clientX; }}
+      onTouchEnd=${e => { const d = e.changedTouches[0].clientX - (touch.current ?? 0); if (Math.abs(d) > 50) goTo(i + (d < 0 ? 1 : -1)); }}>
+    <button class="tut-skip" onClick=${done}>${last ? "" : "Skip"}</button>
+    <div class="tut-track" style=${{ transform: `translateX(${-i * 100}%)` }}>
+      ${TUTORIAL.map(([Art, t, body], n) => html`<section class=${"tut-card" + (n === i ? " on" : "")} key=${n} aria-hidden=${n !== i}>
+        <div class="tut-stage">${n === i && html`<${Art} />`}</div>
+        <h2>${t}</h2>
+        <p>${body}</p>
+      </section>`)}
+    </div>
+    <div class="tut-foot">
+      <div class="tut-dots">${TUTORIAL.map((_, n) => html`<button key=${n} class=${n === i ? "on" : ""} aria-label=${`Card ${n + 1}`} onClick=${() => goTo(n)}></button>`)}</div>
+      <div class="tut-btns">
+        ${i > 0 && html`<button class="btn" onClick=${() => goTo(i - 1)}><${Icon} name="back" size=${18} stroke=${3} /></button>`}
+        <button class="btn primary grow" onClick=${() => last ? done() : goTo(i + 1)}>${last ? "Let's go!" : "Next"}
+          ${!last && html`<${Icon} name="chevron" size=${18} stroke=${3.2} />`}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 // ---------------------------------------------------------------- root
 
 function App() {
@@ -771,7 +949,9 @@ function App() {
     ${sh?.kind === "settings" && html`<${SettingsSheet} />`}
     ${sh?.kind === "listMenu" && html`<${ListMenu} id=${sh.id} />`}
     ${sh?.kind === "confirmDelete" && html`<${ConfirmDelete} id=${sh.id} />`}
-    ${S.toast && html`<div class="toast">${S.toast}</div>`}
+    ${S.toast && html`<div class="toast">${S.toast.msg}${S.toast.action && html`<button class="toast-act" onClick=${() => {
+      S.toast.action.run(); update(s => { s.toast = null; }); }}>${S.toast.action.label}</button>`}</div>`}
+    ${S.tutorial && html`<${Tutorial} />`}
   </div>`;
 }
 

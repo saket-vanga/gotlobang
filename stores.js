@@ -1,12 +1,19 @@
-// The five stores and how each one is searched. Everything runs in the phone's browser:
-// FairPrice, Selvi and KiasuMart allow cross-site requests, Waangoo is searched through Shopify's
-// public Storefront API, and Sheng Siong through the same Meteor websocket its own site uses.
+// The shops and how each one is searched. Almost everything runs in the phone's browser:
+// FairPrice, Selvi, KiasuMart and Cold Storage's API allow cross-site requests, Waangoo is searched through
+// Shopify's public Storefront API, and Sheng Siong through the same Meteor websocket its own site uses.
+// RedMart (Lazada) allows no cross-site requests, so it goes through a tiny relay (relay/worker.js) and is
+// only offered once RELAY is set.
+export const RELAY = "";
 
 export const SITES = {
   shengSiong: { name: "Sheng Siong", color: "#e5484d", cart: "https://shengsiong.com.sg/cart",
     search: q => `https://shengsiong.com.sg/search/${encodeURIComponent(q)}` },
   fairPrice: { name: "FairPrice", color: "#3e63dd", cart: "https://www.fairprice.com.sg/cart",
     search: q => `https://www.fairprice.com.sg/search?query=${encodeURIComponent(q)}` },
+  coldStorage: { name: "Cold Storage", color: "#008c45", cart: "https://coldstorage.com.sg/cart",
+    search: q => `https://coldstorage.com.sg/search?q=${encodeURIComponent(q)}` },
+  redMart: { name: "RedMart", color: "#db1266", cart: "https://cart.lazada.sg/cart",
+    search: q => `https://redmart.lazada.sg/catalog/?q=${encodeURIComponent(q)}&m=redmart` },
   waangoo: { name: "Waangoo", color: "#f76b15", cart: "https://www.waangoo.com/cart",
     search: q => `https://www.waangoo.com/search?q=${encodeURIComponent(q)}&type=product` },
   selvi: { name: "Selvi", color: "#8e4ec6", cart: "https://selvionline.com/cart/",
@@ -14,7 +21,7 @@ export const SITES = {
   kiasumart: { name: "KiasuMart", color: "#12a594", cart: "https://kiasumart.com/cart/",
     search: q => `https://kiasumart.com/?s=${encodeURIComponent(q)}&post_type=product` },
 };
-export const SITE_IDS = Object.keys(SITES);
+export const SITE_IDS = Object.keys(SITES).filter(id => id !== "redMart" || RELAY);
 
 async function json(url, init) {
   const ctl = new AbortController();
@@ -44,6 +51,34 @@ async function fairPrice(q) {
     id: String(p.id ?? p.slug), site: "fairPrice", name: p.name, size: p.metaData?.DisplayUnit ?? null,
     price: Number(p.final_price), url: `https://www.fairprice.com.sg/product/${p.slug}`, image: p.images?.[0] ?? null,
   }));
+}
+
+// Cold Storage's own catalogue API (the same search its site runs server-side).
+async function coldStorage(q) {
+  const d = await json("https://csp.coldstorage.com.sg/api/catalog/product/typesensesearch", {
+    method: "POST", body: new URLSearchParams({ keywords: q, page: "1", limit: "24" }),
+  });
+  return (d?.products ?? []).flatMap(p => {
+    const promo = Number(p.promo_price), regular = Number(p.price);
+    const price = promo > 0 ? promo : regular;
+    if (p.inventory_status !== "In Stock" || !(price > 0)) return [];
+    return [{ id: String(p.product_id), site: "coldStorage", name: decode(p.name), size: p.size || null, price,
+      url: `https://coldstorage.com.sg/product/${p.slug}`, image: p.image ?? null }];
+  });
+}
+
+// RedMart = Lazada's catalogue search filtered to RedMart, fetched through the relay.
+async function redMart(q) {
+  if (!RELAY) throw new Error("RedMart needs the relay");
+  const d = await json(`${RELAY}/redmart?q=${encodeURIComponent(q)}`);
+  return (d?.mods?.listItems ?? []).flatMap(p => {
+    const price = Number(p.price);
+    if (!p.inStock || p.sellerName !== "RedMart" || !(price > 0)) return [];
+    let url = String(p.productUrl ?? p.itemUrl ?? "");
+    if (url.startsWith("//")) url = "https:" + url;
+    url = url.split("?")[0];
+    return [{ id: String(p.itemId), site: "redMart", name: decode(p.name), size: p.packageInfo || null, price, url, image: p.image ?? null }];
+  });
 }
 
 async function woo(site, api, base, q) {
@@ -147,6 +182,8 @@ async function shengSiong(q) {
 export function searchSite(site, q) {
   switch (site) {
     case "fairPrice": return fairPrice(q);
+    case "coldStorage": return coldStorage(q);
+    case "redMart": return redMart(q);
     case "waangoo": return waangoo(q);
     case "selvi": return woo("selvi", "https://selvionline.com/wp-json/wc/store/products", "https://selvionline.com", q);
     case "kiasumart": return woo("kiasumart", "https://kiasumart.com/wp-json/wc/store/v1/products", "https://kiasumart.com", q);

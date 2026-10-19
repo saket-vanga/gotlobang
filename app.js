@@ -23,7 +23,15 @@ const S = {
       items: ["milk", "eggs", "bread", "basmati rice", "onions", "tomatoes"].map(n => entry(n)) },
   ],
   choices: LS.get("choices", {}),   // item key → "site|offer id" picked last time
-  enabled: LS.get("enabled", SITE_IDS),
+  // Shops added in an update start switched on, even if you'd turned some off before.
+  enabled: (() => {
+    const saved = LS.get("enabled", null);
+    const known = LS.get("knownSites", saved ? ["shengSiong", "fairPrice", "waangoo", "selvi", "kiasumart"] : []);
+    const enabled = saved ? [...new Set([...saved, ...SITE_IDS.filter(s => !known.includes(s))])] : SITE_IDS;
+    LS.set("enabled", enabled);
+    LS.set("knownSites", [...new Set([...known, ...SITE_IDS])]);
+    return enabled;
+  })(),
   byUnit: LS.get("byUnit", true),
   // item key → site → { status: "loading" | "failed" | "done", offers, error, at }
   results: Object.fromEntries(Object.entries(LS.get("results", {})).map(([k, v]) => [k,
@@ -211,7 +219,7 @@ const Sticker = ({ children, tone = "yellow", tilt = -4 }) =>
   html`<span class=${"sticker " + tone} style=${{ "--tilt": `${tilt}deg` }}>${children}</span>`;
 
 /// Singlish loading lines, rotated so the wait feels shorter.
-const KAYPOH = ["Kaypoh-ing 5 shops…", "Asking the uncles…", "Comparing like auntie at pasar…", "Checking where got cheaper…"];
+const KAYPOH = [`Kaypoh-ing ${SITE_IDS.length} shops…`, "Asking the uncles…", "Comparing like auntie at pasar…", "Checking where got cheaper…"];
 function Kaypoh() {
   const [i, setI] = useState(0);
   useEffect(() => { const t = setInterval(() => setI(x => x + 1), 1600); return () => clearInterval(t); }, []);
@@ -485,7 +493,7 @@ function ListScreen({ id, focus }) {
       </div>`}
       ${list.items.length === 0 ? html`<div class="empty">
           <div class="empty-bubble">Eh, list empty leh.<br />Need what?</div>
-          <p>Type above or tap a suggestion. We kaypoh 5 shops and tell you where got cheaper.</p>
+          <p>Type above or tap a suggestion. We kaypoh ${sites().length} shops and tell you where got cheaper.</p>
           <p class="muted">Tip: paste a whole list — one item per line.</p></div>`
         : html`${open.length > 0 && html`<div class="items">${open.map(row)}</div>`}
           ${got.length > 0 && html`<button class="section small got-toggle" onClick=${() => setShowGot(!showGot)}>
@@ -780,8 +788,8 @@ function InstallHero() {
   return html`<div class="install-hero">
     <img class="app-icon" src="icons/apple-touch-icon.png" alt="" />
     <${Wordmark} size="xl" />
-    <p>The cheapest groceries in Singapore.<br />Five shops, one list — we kaypoh for you.</p>
-    <div class="store-dots">${SITE_IDS.map((id, i) => html`<span key=${id} style=${{ "--c": SITES[id].color, "--tilt": `${[-4, 3, -2, 4, -3][i]}deg` }}>${SITES[id].name}</span>`)}</div>
+    <p>The cheapest groceries in Singapore.<br />${SITE_IDS.length} shops, one list — we kaypoh for you.</p>
+    <div class="store-dots">${SITE_IDS.map((id, i) => html`<span key=${id} style=${{ "--c": SITES[id].color, "--tilt": `${[-4, 3, -2, 4, -3, 2, -4][i % 7]}deg` }}>${SITES[id].name}</span>`)}</div>
   </div>`;
 }
 
@@ -889,9 +897,9 @@ function TutBuy() {
 }
 
 const TUTORIAL = [
-  [TutWelcome, "Welcome lah!", html`got lobang? checks <b>5 Singapore shops</b> at once and tells you where each grocery item is cheapest.`],
+  [TutWelcome, "Welcome lah!", html`got lobang? checks <b>${SITE_IDS.length} Singapore shops</b> at once and tells you where each grocery item is cheapest.`],
   [TutAdd, "Make your list", html`Type anything — “2x eggs”, “basmati rice” — or tap a suggestion. Pasting a whole list from Notes also can.`],
-  [TutPrices, "We kaypoh, you save", html`Every item shows its cheapest shop. <b>Tap an item</b> to compare all five shops side by side.`],
+  [TutPrices, "We kaypoh, you save", html`Every item shows its cheapest shop. <b>Tap an item</b> to compare every shop side by side.`],
   [TutTick, "Tick = got it", html`Tick what you already have or just bought. All ticked? <b>Shop again</b> resets the list. <b>Chope 🧻</b> the lists you use every week to pin them on top.`],
   [TutBuy, "Buy, then settle liao", html`Hit <b>Buy</b>, pick sizes or flavours, and we split everything into a receipt per shop. Tap <b>Add</b> on each and you're done.`],
 ];

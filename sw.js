@@ -1,6 +1,6 @@
 // Keeps the app shell on the phone so got lobang? opens instantly and offline.
 // Network first, so a new version shows up the next time it's opened online.
-const CACHE = "lobang-v1792729871";
+const CACHE = "lobang-v1792730070";
 const SHELL = ["./", "index.html", "style.css", "app.js", "stores.js", "vendor/preact-htm.js", "vendor/qrcode.js",
   "manifest.webmanifest", "icons/apple-touch-icon.png", "icons/icon-192.png"];
 
@@ -17,7 +17,8 @@ self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;  // store APIs go straight to the network
   e.respondWith(
-    fetch(e.request).then(r => {
+    // "no-cache" = always ask the server if there's something newer (cheap: unchanged files answer 304).
+    fetch(e.request, { cache: "no-cache" }).then(r => {
       if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
       return r;
     }).catch(() => caches.match(e.request, { ignoreSearch: true }))

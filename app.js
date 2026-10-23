@@ -718,6 +718,8 @@ function SettingsSheet() {
     <div class="group">
       <button class="group-row link" onClick=${() => update(s => { s.sheet = null; s.tutorial = true; })}>
         <span class="menu-emoji">👋</span><span class="grow">How it works (tutorial)</span></button>
+      <a class="group-row link" href="support/">
+        <span class="menu-emoji">💬</span><span class="grow">Help &amp; live chat<small>Something not working? Chat with us</small></span></a>
     </div>
     <button class="btn primary wide" onClick=${close}>Can</button>
   <//>`;

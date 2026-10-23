@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Help &amp; support · got lobang?</title>
+  <meta name="description" content="Quick fixes for got lobang? and live chat with the developer." />
+  <meta name="theme-color" content="#fff5dc" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#14110c" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/png" href="../icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="support.css" />
+</head>
+<body>
+  <header class="sp-top">
+    <a class="sp-back" href="../" id="back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg><span>Back</span></a>
+    <span class="sp-title">Help &amp; support</span>
+    <span></span>
+  </header>
+
+  <main class="sp-main">
+    <section class="sp-hero">
+      <span class="sticker red" style="--tilt:-4deg">we're here lah</span>
+      <h1>Got problem?<br />We help.</h1>
+      <p>Try the quick fixes, or chat with us live — a real human (the person who made got lobang?) reads every message.</p>
+      <a class="btn primary" href="#chat">💬 Chat with us</a>
+    </section>
+
+    <section class="sp-faq">
+      <h2 class="section"><span>Quick fixes</span></h2>
+      <details>
+        <summary>A shop “didn't answer” or prices are missing</summary>
+        <p>Shops' websites are sometimes slow or busy. Open the list again, or go to <b>Settings › Check all prices again</b>. If one shop keeps failing, you can switch it off in Settings for now — and tell us below so we can fix it.</p>
+      </details>
+      <details>
+        <summary>The price at the shop is different</summary>
+        <p>We show each shop's listed price when we last checked (prices are kept for up to 6 hours). Promotions change, and some shops show member-only or app-only prices. Tap an item to see what we found at every shop, then <b>Check prices again</b> for the latest.</p>
+      </details>
+      <details>
+        <summary>It can't find my item, or picked the wrong thing</summary>
+        <p>Use a simple name like “basmati rice” or “oat milk”. In <b>Buy</b>, every option is a card — tap the right one and we'll remember it next time. Quantities like “2x eggs” work too.</p>
+      </details>
+      <details>
+        <summary>How do I put it on my iPhone's Home Screen?</summary>
+        <p>Open <b>saket-vanga.github.io/gotlobang</b> in Safari, tap <b>Share</b> (or <b>•••</b> then Share), then <b>Add to Home Screen</b>, keep <b>Open as Web App</b> on and tap <b>Add</b>.</p>
+      </details>
+      <details>
+        <summary>My Mac says it can't open the app</summary>
+        <p>It's not from the App Store, so the first time macOS asks you to confirm. Open <b>System Settings › Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. You only need to do this once.</p>
+      </details>
+      <details>
+        <summary>Are my lists private?</summary>
+        <p>Yes. There's no account and your lists stay on your device. The app only talks to the shops' own websites to look up prices. Chats here are only seen by us.</p>
+      </details>
+    </section>
+
+    <section class="sp-chat" id="chat">
+      <h2 class="section"><span>Live chat</span> <em class="dot-live"></em></h2>
+
+      <form class="chat-card" id="startForm" hidden>
+        <p class="muted">Tell us what's up. We usually reply within a few hours — keep this page open, or come back later: your chat is saved on this device.</p>
+        <label>Your name <small>(optional)</small><input name="name" maxlength="40" autocomplete="given-name" placeholder="e.g. Wei Ling" /></label>
+        <label>Email or phone <small>(optional — in case you leave the page)</small><input name="contact" maxlength="80" autocomplete="email" placeholder="you@example.com" /></label>
+        <label>Message<textarea name="text" rows="4" maxlength="1500" required placeholder="What happened? Which shop or item?"></textarea></label>
+        <button class="btn primary wide" type="submit" id="startBtn">Start chat</button>
+        <p class="chat-error" id="startError" hidden></p>
+      </form>
+
+      <div class="chat-card chat-live" id="chatBox" hidden>
+        <div class="chat-head">
+          <div><b>got lobang? support</b><div class="muted small" id="chatStatus">Connected · replies appear here</div></div>
+          <button class="link-small" id="endChat" type="button">End chat</button>
+        </div>
+        <div class="chat-log" id="log" aria-live="polite"></div>
+        <form class="chat-input" id="sendForm">
+          <textarea id="msg" rows="1" maxlength="1500" placeholder="Type a message" enterkeyhint="send"></textarea>
+          <button class="send" type="submit" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </form>
+      </div>
+
+      <div class="chat-card" id="unavailable" hidden>
+        <p><b>Live chat is taking a break.</b></p>
+        <p class="muted">Please try again a bit later.</p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="support.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 // Keeps the app shell on the phone so got lobang? opens instantly and offline.
 // Network first, so a new version shows up the next time it's opened online.
-const CACHE = "lobang-v1792730070";
+const CACHE = "lobang-v1792730473";
 const SHELL = ["./", "index.html", "style.css", "app.js", "stores.js", "vendor/preact-htm.js", "vendor/qrcode.js",
   "manifest.webmanifest", "icons/apple-touch-icon.png", "icons/icon-192.png"];
 

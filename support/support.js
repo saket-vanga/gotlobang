@@ -82,6 +82,7 @@ $("startForm").addEventListener("submit", async e => {
     render();
     $("msg").focus();
     await poll();
+    schedule();   // keep checking for replies from now on
   } catch (err) {
     if (err.status === 503) { $("startForm").hidden = true; $("unavailable").hidden = false; return; }
     $("startError").textContent = err.message;
@@ -101,6 +102,8 @@ async function send(text) {
     const d = await post("/chat/send", { chat: chat.chat, token: chat.token, name: chat.name, text });
     m.id = d.id;
     m.pending = false;
+    quietSince = Date.now();
+    schedule();
   } catch {
     m.pending = false;
     m.failed = true;
@@ -131,6 +134,9 @@ $("msg").addEventListener("input", grow);
 
 $("endChat").addEventListener("click", () => {
   if (!confirm("End this chat? It'll be cleared from this device.")) return;
+  // Let the team know (keepalive so it still goes out if the page closes straight away).
+  fetch(RELAY + "/chat/end", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat: chat.chat, token: chat.token, name: chat.name }) }).catch(() => {});
   chat = null;
   save(null);
   render();
@@ -195,6 +201,4 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) docu
 
 if (!RELAY) { $("startForm").hidden = true; $("unavailable").hidden = false; }
 else { render(); if (chat) { poll(); schedule(); } }
-// Keep polling going after a chat starts.
-$("startForm").addEventListener("submit", () => setTimeout(schedule, 500));
 if (params.has("chat")) location.hash = "#chat";

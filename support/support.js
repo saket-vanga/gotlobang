@@ -24,6 +24,7 @@ const post = (path, body) => api(path, { method: "POST", headers: { "Content-Typ
 // ---------------------------------------------------------------- rendering
 
 const time = iso => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const AWAY_AFTER = 2 * 60e3;
 
 function render() {
   $("startForm").hidden = !!chat;
@@ -32,22 +33,25 @@ function render() {
   const log = $("log");
   const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
   log.innerHTML = "";
+  const note = text => { const n = document.createElement("div"); n.className = "bubble system"; n.textContent = text; log.append(n); };
+  note(`👋 Hi ${chat.name || "there"}! You're chatting with a real person from the got lobang? Support Team — not AI. ` +
+    "It may take a few minutes for someone to join. Tell us what's up in the meantime.");
   for (const m of chat.messages) {
     const b = document.createElement("div");
     b.className = `bubble ${m.from}${m.pending ? " pending" : ""}${m.failed ? " failed" : ""}`;
     const t = document.createElement("div");
     t.textContent = m.text;
     const meta = document.createElement("small");
-    meta.textContent = m.failed ? "Not sent — tap to retry" : m.pending ? "Sending…" : `${m.from === "support" ? (m.name || "Support") + " · " : ""}${time(m.at)}`;
+    meta.textContent = m.failed ? "Not sent — tap to retry" : m.pending ? "Sending…" : `${m.from === "support" ? "got lobang? Support Team · " : ""}${time(m.at)}`;
     b.append(t, meta);
     if (m.failed) b.addEventListener("click", () => resend(m));
     log.append(b);
   }
-  if (!chat.messages.some(m => m.from === "support")) {
-    const n = document.createElement("div");
-    n.className = "chat-note";
-    n.textContent = "Message sent! We'll reply here — usually within a few hours. You can close this page; your chat is saved.";
-    log.append(n);
+  // Nobody has answered for 2 minutes: ask for their message and promise an email reply.
+  const answered = chat.messages.some(m => m.from === "support");
+  if (!answered && Date.now() - (chat.startedAt ?? 0) > AWAY_AFTER) {
+    note(`😅 Looks like we're away right now. Leave your message here and we'll email you back at ${chat.email || "your email"}. ` +
+      "You can close this page — your chat is saved.");
   }
   if (nearBottom || chat.justSent) log.scrollTop = log.scrollHeight;
   chat.justSent = false;
@@ -63,19 +67,20 @@ function setStatus(text, bad) {
 $("startForm").addEventListener("submit", async e => {
   e.preventDefault();
   const f = new FormData(e.target);
-  const text = String(f.get("text") ?? "").trim();
-  if (!text) return;
+  const name = String(f.get("name") ?? "").trim(), email = String(f.get("email") ?? "").trim();
+  if (!name || !email) return;
   $("startBtn").disabled = true;
   $("startBtn").textContent = "Starting…";
   $("startError").hidden = true;
   try {
     const d = await post("/chat/start", {
-      name: f.get("name"), contact: f.get("contact"), text, from: FROM,
+      name, email, from: FROM,
       device: navigator.userAgent.replace(/^Mozilla\/5\.0 /, "").slice(0, 180),
     });
-    chat = { chat: d.chat, token: d.token, name: d.name, after: d.after, messages: [] };
+    chat = { chat: d.chat, token: d.token, name: d.name, email, startedAt: Date.now(), after: d.after, messages: [] };
     save(chat);
     render();
+    $("msg").focus();
     await poll();
   } catch (err) {
     if (err.status === 503) { $("startForm").hidden = true; $("unavailable").hidden = false; return; }

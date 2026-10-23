@@ -1,7 +1,7 @@
 {
   "name": "got lobang?",
   "short_name": "got lobang?",
-  "description": "The cheapest groceries in Singapore, across five shops.",
+  "description": "The cheapest groceries in Singapore, across seven shops.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -3,7 +3,7 @@
 // Shopify's public Storefront API, and Sheng Siong through the same Meteor websocket its own site uses.
 // RedMart (Lazada) allows no cross-site requests, so it goes through a tiny relay (relay/worker.js) and is
 // only offered once RELAY is set.
-export const RELAY = "";
+export const RELAY = "https://gotlobang-relay.gotlobang.workers.dev";
 
 export const SITES = {
   shengSiong: { name: "Sheng Siong", color: "#e5484d", cart: "https://shengsiong.com.sg/cart",
